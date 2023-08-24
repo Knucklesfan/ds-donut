@@ -78,7 +78,10 @@ BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*))) soundbank.bi
 PNGFILES	:=	$(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.png)))
 
 export AUDIOFILES	:=	$(foreach dir,$(notdir $(wildcard $(MUSIC)/*.*)),$(CURDIR)/$(MUSIC)/$(dir))
-
+GAME_ICON := ./dslogo.bmp
+GAME_TITLE := DonutDS
+GAME_SUBTITLE1 := Hold on to your donut...
+GAME_SUBTITLE2 := Wii Donut, but on the DS
 #---------------------------------------------------------------------------------
 # use CXX for linking C++ projects, CC for standard C
 #---------------------------------------------------------------------------------
