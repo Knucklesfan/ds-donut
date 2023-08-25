@@ -46,15 +46,35 @@ static int color;
 
 int8_t b[1760], z[1760];
 	  int sA=1024,cA=0,sB=1024,cB=0,_;
-
+uint8_t visualize;
 //---------------------------------------------------------------------------------
 void Vblank() {
 
 
 	frame++;
+	if(visualize > 0) {
+		visualize--;
+	}
 //---------------------------------------------------------------------------------
 }
+mm_word myEventHandler( mm_word msg, mm_word param ) {
+//---------------------------------------------------------------------------------
+	switch( msg ) {
+
+	case MMCB_SONGMESSAGE:	// process song messages
+
+		// if song event 1 is triggered, set sprite's y velocity to make it jump
+		if (param == 1) visualize = 5;
+
+        break;
+		
+		case MMCB_SONGFINISHED:	// process song finish message (only triggered in songs played with MM_PLAY_ONCE)
+        
+		break;
+    }
 	
+	return 0;
+}	
 //---------------------------------------------------------------------------------
 int main(void) {
 //---------------------------------------------------------------------------------
@@ -76,7 +96,7 @@ int main(void) {
 	lcdMainOnBottom();
 	irqSet(IRQ_VBLANK, Vblank);
 	mmInitDefaultMem((mm_addr)soundbank_bin);
-	
+	mmSetEventHandler( myEventHandler );
 	// load the module
 	mmLoad( MOD_FLATOUTLIES );
 
@@ -130,7 +150,16 @@ int main(void) {
 		printf("\x1b[2J");
 		printf("\x1b[0m");
 		printf("LEFT/RIGHT CHANGE COLOR %d",color);
-		switch(color) {
+		if(visualize > 0) {
+			if(color == 6) { //white
+				printf("\x1b[37;5m");
+			}
+			else { //cyan
+				printf("\x1b[36;3m");
+			}
+		}
+		else {
+					switch(color) {
 			default: printf("\x1b[37;5m");break;
 			case 1: printf("\x1b[31;3m");break;
 			case 2: printf("\x1b[32;3m");break;
@@ -153,6 +182,8 @@ int main(void) {
 					case 7: printf("\x1b[38;3m");break;
 				}
 			}
+
+		}
 
 		}
 			// printf("\x1b[H");
