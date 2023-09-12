@@ -1,11 +1,18 @@
 /*---------------------------------------------------------------------------------
 
-	$Id: main.cpp,v 1.13 2008-12-02 20:21:20 dovoto Exp $
+ITS DS DONUT BABY!!!!!
 
-	Simple console print demo
-	-- dovoto
+    OOOOOO
+   O      O
+  O   __   O
+  O  |  |  O
+  O  |  |  O
+  O   --   O
+   O      O
+    OOOOOO
 
-
+By Knuxfan
+originally taken from donut.c by Andy Sloane (https://www.a1k0n.net/2021/01/13/optimizing-donut.html in particular!)
 ---------------------------------------------------------------------------------*/
 #include <nds.h>
 #include <maxmod9.h>
@@ -18,7 +25,10 @@
 #include "soundbank.h"
 #include "soundbank_bin.h"
 #include "fortniteballs.h"
-
+#include "dsconcert.h"
+#include "FINALLY.h"
+#include "thugbob.h"
+#include "DSDONUT.h"
 volatile int frame = 0;
 
 #define BUFFER_WIDTH 32
@@ -67,6 +77,7 @@ float rad(float deg);
 void rotateZ3D(float t);
 void rotateX3D(float t);
 void rotateY3D(float t);
+int song = 0;
 //---------------------------------------------------------------------------------
 void Vblank()
 {
@@ -114,16 +125,17 @@ int main(void)
 	consoleInit(&bottomScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 0, false, true);
 	bgInit(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
 
-	decompress(fortniteballsBitmap, BG_GFX, LZ77Vram);
+	decompress(dsconcertBitmap, BG_GFX, LZ77Vram);
+
 	consoleSelect(&bottomScreen);
 	lcdMainOnBottom();
 	irqSet(IRQ_VBLANK, Vblank);
 	mmInitDefaultMem((mm_addr)soundbank_bin);
 	mmSetEventHandler(myEventHandler);
 	// load the module
-	mmLoad(MOD_FLATOUTLIES);
+	mmLoad(MOD_ADDICTI);
 
-	mmStart(MOD_FLATOUTLIES, MM_PLAY_LOOP);
+	mmStart(MOD_ADDICTI, MM_PLAY_LOOP);
 	while (true)
 	{
 		scanKeys();
@@ -146,12 +158,61 @@ int main(void)
 		if (keys & KEY_SELECT) {
 			cube = !cube;
 		}
+		if (keys & KEY_START) {
+			if(song < 4) {
+				song++;
+			}
+			else {
+				song = 0;
+			}
+			
+			mmStop();
 
+			switch(song) {
+				default: {
+					decompress(dsconcertBitmap, BG_GFX, LZ77Vram);
+					mmUnload(MOD_FLATOUTLIES);
+					mmLoad(MOD_ADDICTI);
+					mmStart(MOD_ADDICTI, MM_PLAY_LOOP);
+					break;
+				}
+				case 1: {
+					decompress(FINALLYBitmap, BG_GFX, LZ77Vram);
+					mmUnload(MOD_ADDICTI);
+					mmLoad(MOD_2ND_PM);
+					mmStart(MOD_2ND_PM, MM_PLAY_LOOP);
+					break;
+
+				}
+				case 2: {
+					decompress(DSDONUTBitmap, BG_GFX, LZ77Vram);
+					mmUnload(MOD_2ND_PM);
+					mmLoad(MOD_VRC6N001);
+					mmStart(MOD_VRC6N001, MM_PLAY_LOOP);
+					break;
+				}
+				case 3: {
+					decompress(fortniteballsBitmap, BG_GFX, LZ77Vram);
+					mmUnload(MOD_VRC6N001);
+					mmLoad(MOD_CANT_STOP_COMING);
+					mmStart(MOD_CANT_STOP_COMING, MM_PLAY_LOOP);
+					break;
+				}
+				case 4: {
+					decompress(thugbobBitmap, BG_GFX, LZ77Vram);
+					mmUnload(MOD_CANT_STOP_COMING);
+					mmLoad(MOD_FLATOUTLIES);
+					mmStart(MOD_FLATOUTLIES, MM_PLAY_LOOP);
+					break;
+				}
+
+			}
+		}
 		if (cube)
 		{
 			iprintf("\x1b[2J");
 			iprintf("\x1b[0m");
-			iprintf("L/R: COLOR SEL: SHAPE\n");
+			iprintf("L/R: COLOR SEL: SHAPE ST: MUSIC\n");
 
 			memset(cb, 32, 1760); // text buffer
 			memset(b, 32, 1760);  // text buffer
@@ -289,7 +350,7 @@ int main(void)
 			}
 			printf("\x1b[2J");
 			printf("\x1b[0m");
-			printf("LEFT/RIGHT CHANGE COLOR %d",color);
+			iprintf("L/R: COLOR SEL: SHAPE ST: MUSIC\n");
 			if (visualize > 0)
 			{
 				if (color == 6)
