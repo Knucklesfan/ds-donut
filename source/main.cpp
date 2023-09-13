@@ -28,6 +28,7 @@ originally taken from donut.c by Andy Sloane (https://www.a1k0n.net/2021/01/13/o
 #include "dsconcert.h"
 #include "FINALLY.h"
 #include "thugbob.h"
+#include "gangster.h"
 #include "DSDONUT.h"
 volatile int frame = 0;
 
@@ -47,6 +48,14 @@ static int color;
 static bool cube = false;
 void lineDraw(int8_t *buffer, int x, int y, int x2, int y2);
 void bresenham(int8_t *buffer, int x1, int y1, int x2, int y2);
+typedef struct
+{
+	int x;
+	int y;
+
+	u16* sprite_gfx_mem;
+
+}sprite;
 
 #define R(mul, shift, x, y)            \
 	_ = x;                             \
@@ -119,8 +128,12 @@ int main(void)
 	PrintConsole bottomScreen;
 	videoSetMode(MODE_5_2D);
 	videoSetModeSub(MODE_0_2D);
+	
 	vramSetBankA(VRAM_A_MAIN_BG);
 	vramSetBankC(VRAM_C_SUB_BG);
+
+	vramSetBankA(VRAM_A_MAIN_SPRITE);
+	oamInit(&oamMain, SpriteMapping_1D_128, false);
 
 	consoleInit(&bottomScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 0, false, true);
 	bgInit(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
@@ -136,6 +149,11 @@ int main(void)
 	mmLoad(MOD_ADDICTI);
 
 	mmStart(MOD_ADDICTI, MM_PLAY_LOOP);
+	sprite spr = {64,64};
+	spr.sprite_gfx_mem = oamAllocateGfx(&oamMain, SpriteSize_64x64, SpriteColorFormat_256Color);
+	dmaCopy((u8*)gangsterTiles, spr.sprite_gfx_mem, 32*32);
+	dmaCopy(gangsterPal, SPRITE_PALETTE, 512);
+
 	while (true)
 	{
 		scanKeys();
@@ -435,6 +453,9 @@ int main(void)
 			R(5, 8, cB, sB);
 			printf("\x1b[23A");
 		}
+		oamSet(&oamMain, 0, spr.x, spr.y, 0, 0, SpriteSize_64x64, SpriteColorFormat_256Color, 
+		spr.sprite_gfx_mem, -1, false, false, false, false, false);
+
 		swiWaitForVBlank();
 	}
 	return 0;
