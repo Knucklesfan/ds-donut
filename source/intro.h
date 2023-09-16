@@ -1,6 +1,12 @@
+#pragma once
+#include <nds.h>
 namespace Intro {
-    bool active = true;
-    bool godown = true;
+    extern PrintConsole topScreen;
+    extern PrintConsole bottomScreen;
+    extern bool active;
+    extern int bg;
+    extern int angle;
+    extern bool godown;
     void load();
     void clean();
     int logic();
