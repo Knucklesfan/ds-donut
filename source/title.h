@@ -1,6 +1,6 @@
 #pragma once
 #include <nds.h>
-namespace Intro {
+namespace Title {
     extern PrintConsole topScreen;
     extern PrintConsole bottomScreen;
     extern bool active;

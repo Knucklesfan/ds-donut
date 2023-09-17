@@ -6,6 +6,7 @@
         "sstream": "cpp",
         "streambuf": "cpp",
         "string_view": "cpp",
-        "*.tcc": "cpp"
+        "*.tcc": "cpp",
+        "cmath": "cpp"
     }
 }

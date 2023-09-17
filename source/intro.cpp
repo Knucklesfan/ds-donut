@@ -22,6 +22,7 @@ float Intro::yVel = 0;
 int Intro::lifetime = 0;
 int Intro::bg3 = 0;
 int Intro::bgS = 0;
+double Intro::scale = 1.0;
 int Intro::border = 0;
 int Intro::checkerboard = 0;
 
@@ -52,9 +53,10 @@ void Intro::load() {
 	bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 3,0);
 	bgS = bgInit(0, BgType_Text4bpp, BgSize_T_256x256, 16, 0);
 
-	checkerboard = bgInitSub(1, BgType_Text8bpp, BgSize_T_256x256, 31, 0);
-  	border = bgInitSub(0, BgType_Text8bpp, BgSize_T_256x256, 30, 4);
-
+	checkerboard = bgInitSub(1, BgType_Text8bpp, BgSize_T_256x256, 5, 0);
+  	border = bgInitSub(0, BgType_Text8bpp, BgSize_T_256x256, 4, 1);
+	consoleInit(&bottomScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 4, false, true);
+	consoleSelect(&bottomScreen);
 	// dmaCopy(surprisinglyBitmap, bgGetGfxPtr(bg[1]), 256*256);
 	dmaCopy(surprisinglyTiles,  bgGetGfxPtr(bgS), surprisinglyTilesLen);
 	dmaCopy(surprisinglyMap, bgGetMapPtr(bgS), surprisinglyMapLen);
@@ -86,8 +88,8 @@ void Intro::load() {
 	// consoleSelect(&bottomScreen);
 	// iprintf("Press start...");
 	bgSetPriority(checkerboard,3);
-	bgSetPriority(border,0);
-
+	bgSetPriority(border,1);
+	setBackdropColor(0);
 	dmaCopy(knuxfanPal, SPRITE_PALETTE, 512);
 	u8* gfx = (u8*)knuxfanTiles; 
 	knuxfanScreen[0] = oamAllocateGfx(&oamMain, SpriteSize_64x64, SpriteColorFormat_256Color);
@@ -106,12 +108,14 @@ void Intro::load() {
 	dmaCopy(gfx, presents[1], 64*64);
 
 
+
 }
 int Intro::logic() {
 
 	//ALL OF THIS LOGIC IS STOLEN FROM KNUXFANPONG/KNUXFANTETRIMINOS
 	//because im lazy
 
+	printf("\n%lf",scale);
 
         if (lifetime > 250) {
             active = false;
@@ -156,19 +160,25 @@ int Intro::logic() {
 
 	//BEGIN RENDERING!!!
     oamRotateScale(&oamMain, 0, degreesToAngle(knRot), intToFixed(1, 8), intToFixed(1, 8));
-
 	// bgSetScroll(bg[1], 0, 0);
+
 	bgSetScroll(bgS, angle, angle);
 
 	bgSetScroll(checkerboard,-angle,-angle);
+	bgSetScroll(bg3,-(4.0-4.0/scale),-(4-4.0/scale));
+	
+	bgSetScale(bg3,((int)((scale)*(1<<8))),((int)((scale)*(1<<8))));
 	bgUpdate();
 	if(!godown && active && brightness < 100) {
 		brightness++;
 	}
-	if(godown && brightness > 0) {
+	if(!active && scale < 0x100000) {
+		scale -= 0.01;
+	}
+	if(!active && scale <= 0 && brightness > 0) {
 		brightness--;
 	}
-	if(brightness <= 0) {
+	if(brightness <= 0 && !active) {
 		return 1;
 	}
     oamSet(&oamMain, 0, knCoord[0], knCoord[1], 0, 0, SpriteSize_64x64, SpriteColorFormat_256Color, 
