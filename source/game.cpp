@@ -51,7 +51,7 @@ void Game::load() {
 	dmaCopy(dsconcertBitmap, bgGetGfxPtr(bg), 256*256);
 	dmaCopy(dsconcertPal, BG_PALETTE, 256*2);
 
-	decompress(dsconcertBitmap, BG_GFX, LZ77Vram);
+	// decompress(dsconcertBitmap, BG_GFX, LZ77Vram);
     consoleSelect(&bottomScreen);
 	lcdMainOnBottom();
 	mmLoad(MOD_ADDICTI);

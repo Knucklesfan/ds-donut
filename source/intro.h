@@ -13,6 +13,10 @@ namespace Intro {
     extern float knRot;
     extern float yVel;
     extern int lifetime;
+    extern int bg3;
+    extern int bgS;
+    extern int checkerboard;
+    extern int border;
     extern int brightness;
     extern int angle;
     extern bool godown;
