@@ -14,6 +14,7 @@ namespace Game {
     extern int edges[12][2];
     extern float nodes[8][3];
     extern int angle;
+    extern int bg;
     extern int color;
     extern bool cube;
     extern int song;

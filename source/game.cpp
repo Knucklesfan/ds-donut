@@ -11,6 +11,7 @@
 #include <maxmod9.h>
 #include <stdio.h>
     int Game::frame = 0;
+	int Game::bg = 0;
      int8_t Game::b[1760], Game::z[1760];
      int8_t Game::cb[1760]; // cube buffer
      int Game::sA = 1024, Game::cA = 0, Game::sB = 1024, Game::cB = 0, Game::underscore=0;
@@ -45,7 +46,10 @@ void Game::load() {
 
 	oamInit(&oamMain, SpriteMapping_1D_128, false);
 	consoleInit(&bottomScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 0, false, true);
-	bgInit(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
+	bg = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 0,0);
+
+	dmaCopy(dsconcertBitmap, bgGetGfxPtr(bg), 256*256);
+	dmaCopy(dsconcertPal, BG_PALETTE, 256*2);
 
 	decompress(dsconcertBitmap, BG_GFX, LZ77Vram);
     consoleSelect(&bottomScreen);
@@ -57,6 +61,7 @@ void Game::load() {
 	dmaCopy(marioheadbangPal, SPRITE_PALETTE, 512);
 	int i;
 	u8* gfx = (u8*)marioheadbangTiles; 
+	
 	for(i = 0; i < 5; i++)
 	{
 		spr.sprite_gfx_mem[i] = oamAllocateGfx(&oamMain, SpriteSize_64x64, SpriteColorFormat_256Color);
@@ -99,14 +104,18 @@ int Game::logic() {
 
         switch(song) {
             default: {
-                decompress(dsconcertBitmap, BG_GFX, LZ77Vram);
+				dmaCopy(dsconcertBitmap, bgGetGfxPtr(bg), 256*256);
+				dmaCopy(dsconcertPal, BG_PALETTE, 256*2);
+
                 mmUnload(MOD_FLATOUTLIES);
                 mmLoad(MOD_ADDICTI);
                 mmStart(MOD_ADDICTI, MM_PLAY_LOOP);
                 break;
             }
             case 1: {
-                decompress(FINALLYBitmap, BG_GFX, LZ77Vram);
+				dmaCopy(FINALLYBitmap, bgGetGfxPtr(bg), 256*256);
+				dmaCopy(FINALLYPal, BG_PALETTE, 256*2);
+
                 mmUnload(MOD_ADDICTI);
                 mmLoad(MOD_2ND_PM);
                 mmStart(MOD_2ND_PM, MM_PLAY_LOOP);
@@ -114,21 +123,25 @@ int Game::logic() {
 
             }
             case 2: {
-                decompress(DSDONUTBitmap, BG_GFX, LZ77Vram);
+				dmaCopy(DSDONUTBitmap, bgGetGfxPtr(bg), 256*256);
+				dmaCopy(DSDONUTPal, BG_PALETTE, 256*2);
+
                 mmUnload(MOD_2ND_PM);
                 mmLoad(MOD_VRC6N001);
                 mmStart(MOD_VRC6N001, MM_PLAY_LOOP);
                 break;
             }
             case 3: {
-                decompress(fortniteballsBitmap, BG_GFX, LZ77Vram);
+				dmaCopy(fortniteballsBitmap, bgGetGfxPtr(bg), 256*256);
+				dmaCopy(fortniteballsPal, BG_PALETTE, 256*2);
                 mmUnload(MOD_VRC6N001);
                 mmLoad(MOD_CANT_STOP_COMING);
                 mmStart(MOD_CANT_STOP_COMING, MM_PLAY_LOOP);
                 break;
             }
             case 4: {
-                decompress(thugbobBitmap, BG_GFX, LZ77Vram);
+				dmaCopy(thugbobBitmap, bgGetGfxPtr(bg), 256*256);
+				dmaCopy(thugbobPal, BG_PALETTE, 256*2);
                 mmUnload(MOD_CANT_STOP_COMING);
                 mmLoad(MOD_FLATOUTLIES);
                 mmStart(MOD_FLATOUTLIES, MM_PLAY_LOOP);
