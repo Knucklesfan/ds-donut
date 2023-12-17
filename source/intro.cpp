@@ -115,8 +115,6 @@ int Intro::logic() {
 	//ALL OF THIS LOGIC IS STOLEN FROM KNUXFANPONG/KNUXFANTETRIMINOS
 	//because im lazy
 
-	printf("\n%lf",scale);
-
         if (lifetime > 250) {
             active = false;
 			godown = true;

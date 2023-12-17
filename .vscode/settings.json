@@ -8,5 +8,6 @@
         "string_view": "cpp",
         "*.tcc": "cpp",
         "cmath": "cpp"
-    }
+    },
+    "C_Cpp.errorSquiggles": "disabled"
 }
