@@ -29,19 +29,22 @@ originally taken from donut.c by Andy Sloane (https://www.a1k0n.net/2021/01/13/o
 #include "dsconcert.h"
 #include "game.h"
 #include "intro.h"
+#include "title.h"
 #include "chrisscreen.h"
 
 volatile int frame = 0;
 volatile int scanline = 0;
-
+volatile int gamemode = 0;
 void Vblank() {
 	scanline = 0;
 	frame++;
-	mmFrame();
 }
 void Hblank() {
-	setBackdropColorSub(scanline/24);
-	scanline++;
+	if(gamemode == 2) {
+		setBackdropColorSub(scanline/24);
+		scanline++;
+
+	}
 }
 
 mm_word myEventHandler(mm_word msg, mm_word param) {
@@ -62,20 +65,18 @@ mm_word myEventHandler(mm_word msg, mm_word param) {
 //---------------------------------------------------------------------------------
 int main(void)
 {
-	irqInit(); //init the irq
 	defaultExceptionHandler();
 
 	mmInitDefaultMem((mm_addr)soundbank_bin);
 	mmSetEventHandler(myEventHandler);
 
 	//---------------------------------------------------------------------------------
-	
-	irqSet(IRQ_HBLANK, Hblank); //..and hblank for cool snes-like hblank fun
+	irqSet(IRQ_VBLANK, Vblank); //Do some vblank, cuz we need to for hblank
+	irqSet(IRQ_HBLANK, Hblank); //..and hblank for cool snes-like (HDMA ftw) hblank fun
 
-	irqEnable(IRQ_ALL);   
+	irqEnable(IRQ_HBLANK|IRQ_VBLANK);   
 
 	Intro::load();
-	int gamemode = 0;
 	while (true)
 	{	
 		switch(gamemode) {
@@ -93,11 +94,20 @@ int main(void)
 				int logic = ChrisScreen::logic();
 				if(logic == 1) {
 					ChrisScreen::clean();
-					Game::load();
+					Title::load();
 					gamemode = 2;
 				};
 			}break;
-			case 2: {
+			case 2:{
+				int logic = Title::logic();
+				if(logic == 1) {
+					Title::clean();
+					Game::load();
+					gamemode = 3;
+				};
+			}break;
+
+			case 3: {
 				Game::logic();
 
 			}break;

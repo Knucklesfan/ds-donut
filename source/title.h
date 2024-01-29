@@ -6,6 +6,7 @@ namespace Title {
     extern int bg[4];
     extern int lifetime;
     extern int bg3;
+    extern u16* starValue;
     extern int brightness;
     extern int angle;
     extern double scale;

@@ -2,7 +2,7 @@
 #include <nds.h>
 #include <stdio.h>
 #include <maxmod9.h>
-
+#include "star.h"
 #include "chris.h"
 #include "soundbank.h"
 #include "soundbank_bin.h"
@@ -16,6 +16,7 @@ bool Title::godown = false;
 bool Title::goup = true;
 int Title::lifetime = 0;
 int Title::bg3 = 0;
+u16* Title::starValue = 0;
 double Title::scale = 1.0;
 
 void Title::clean() {
@@ -44,6 +45,11 @@ void Title::load() {
 	dmaCopy(chrisBitmap, bgGetGfxPtr(bg3), 256*256);
 	dmaCopy(chrisPal, BG_PALETTE, 256*2);
 
+	u8* gfx = (u8*)starTiles; 
+	starValue = oamAllocateGfx(&oamMain, SpriteSize_8x8, SpriteColorFormat_16Color);
+	dmaCopy(gfx, starValue, 8*8);
+	dmaCopy(starPal, SPRITE_PALETTE, 32);
+
   	// consoleInit(&bottomScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 0, false, true);
 	
 	// consoleInit(&topScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 30, 31, true, true);
@@ -65,10 +71,6 @@ int Title::logic() {
 	//ALL OF THIS LOGIC IS STOLEN FROM KNUXFANPONG/KNUXFANTETRIMINOS
 	//because im lazy
 
-        if (lifetime > 250) {
-            active = false;
-			godown = true;
-        }
         //std::cout << lifetime << "\n";
 
 
@@ -99,6 +101,11 @@ int Title::logic() {
 	if(brightness <= 0 && !active) {
 		return 1;
 	}
+	for(int i = 0; i < 128; i++) {
+		    oamSet(&oamMain, i, ((i)%32)*8, ((i)/32)*8, 0, 0, SpriteSize_8x8, SpriteColorFormat_16Color, 
+    starValue, -1, false, false, false, false, false);
+	}
+	oamUpdate(&oamMain);
 
 	setBrightness(3,-16+16*(brightness/100.0));
 	lifetime++;
