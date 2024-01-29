@@ -101,6 +101,8 @@ int Title::logic() {
 	if(brightness <= 0 && !active) {
 		return 1;
 	}
+
+	//implementation reference https://samme.github.io/phaser-examples-mirror/demoscene/starfield.html
 	for(int i = 0; i < 128; i++) {
 		    oamSet(&oamMain, i, ((i)%32)*8, ((i)/32)*8, 0, 0, SpriteSize_8x8, SpriteColorFormat_16Color, 
     starValue, -1, false, false, false, false, false);
