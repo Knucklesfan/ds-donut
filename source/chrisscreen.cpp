@@ -1,44 +1,33 @@
 #include "chrisscreen.h"
 #include <nds.h>
 #include <stdio.h>
-#include "lakepng.h"
+#include <maxmod9.h>
+
 #include "chris.h"
+#include "soundbank.h"
+#include "soundbank_bin.h"
 
 PrintConsole ChrisScreen::bottomScreen;
-PrintConsole ChrisScreen::topScreen;
 int ChrisScreen::angle = 0;
 int ChrisScreen::brightness = 0;
 bool ChrisScreen::active = true;
 bool ChrisScreen::explode = false;
 bool ChrisScreen::godown = false;
 bool ChrisScreen::goup = true;
-float ChrisScreen::knCoord[4] = {16,0,80,0}; //xy pieces
-float ChrisScreen::presCoord[4] = {80+32+16,192,80+32+16+64,192}; //xy pieces
-float ChrisScreen::knRot = 0;
-float ChrisScreen::yVel = 0;
 int ChrisScreen::lifetime = 0;
 int ChrisScreen::bg3 = 0;
-int ChrisScreen::bgS = 0;
 double ChrisScreen::scale = 1.0;
-int ChrisScreen::border = 0;
-int ChrisScreen::checkerboard = 0;
 
-u16* ChrisScreen::knuxfanScreen[2]= {0,0};
-u16* ChrisScreen::presents[2] = {0,0};
-float lerp(double a, double b, double t)    {
-        if (t <= 0.5)
-            return a+(b-a)*t;
-        else
-            return b-(b-a)*(1.0-t);
-    }
 void ChrisScreen::clean() {
-	setBrightness(3,0);
 
 }
 void ChrisScreen::load() {
-	
-  videoSetMode(MODE_5_2D);
-  videoSetModeSub(MODE_0_2D);
+	mmLoad(MOD_WHISTLE);
+
+	mmStart(MOD_WHISTLE, MM_PLAY_LOOP);
+
+	videoSetMode(MODE_5_2D);
+	videoSetModeSub(MODE_0_2D);
     vramSetBankA(VRAM_A_MAIN_BG_0x06000000);
 	vramSetBankB(VRAM_B_MAIN_SPRITE);
 	vramSetBankC(VRAM_C_SUB_BG);
@@ -48,31 +37,13 @@ void ChrisScreen::load() {
   	bgExtPaletteEnableSub();
 	//initialize the memory for our two backgrounds
 	bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 3,0);
-	bgS = bgInit(0, BgType_Text4bpp, BgSize_T_256x256, 16, 0);
 
-	checkerboard = bgInitSub(1, BgType_Text8bpp, BgSize_T_256x256, 5, 0);
-  	border = bgInitSub(0, BgType_Text8bpp, BgSize_T_256x256, 4, 1);
 	consoleInit(&bottomScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 4, false, true);
 	consoleSelect(&bottomScreen);
-	// dmaCopy(surprisinglyBitmap, bgGetGfxPtr(bg[1]), 256*256);
-	dmaCopy(surprisinglyTiles,  bgGetGfxPtr(bgS), surprisinglyTilesLen);
-	dmaCopy(surprisinglyMap, bgGetMapPtr(bgS), surprisinglyMapLen);
-	dmaCopy(surprisinglyPal, BG_PALETTE, 256*2);
 
-	dmaCopy(lakepngBitmap, bgGetGfxPtr(bg3), 256*256);
-	dmaCopy(lakepngPal, BG_PALETTE, 256*2);
+	dmaCopy(chrisBitmap, bgGetGfxPtr(bg3), 256*256);
+	dmaCopy(chrisPal, BG_PALETTE, 256*2);
 
-	dmaCopy(checkerboardTiles,  bgGetGfxPtr(checkerboard), checkerboardTilesLen);
-	dmaCopy(borderTiles, bgGetGfxPtr(border), borderTilesLen);
-
-	dmaCopy(checkerboardMap,  bgGetMapPtr(checkerboard), checkerboardMapLen);
-	dmaCopy(borderMap, bgGetMapPtr(border), borderMapLen);
-
-	vramSetBankH(VRAM_H_LCD); // for sub engine
-	// dmaCopy(lakepngPal,  &VRAM_E_EXT_PALETTE[3][0],  lakepngPalLen);  // bg 1, slot 0
-	dmaCopy(checkerboardPal,  &VRAM_H_EXT_PALETTE[1][0],  checkerboardPalLen);  // bg 0, slot 0
-	dmaCopy(borderPal, &VRAM_H_EXT_PALETTE[0][0], borderPalLen); // bg 1, slot 12
-	vramSetBankH(VRAM_H_SUB_BG_EXT_PALETTE); // for sub engine
   	// consoleInit(&bottomScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 0, false, true);
 	
 	// consoleInit(&topScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 30, 31, true, true);
@@ -84,25 +55,7 @@ void ChrisScreen::load() {
     // iprintf("DSDonut!");
 	// consoleSelect(&bottomScreen);
 	// iprintf("Press start...");
-	bgSetPriority(checkerboard,3);
-	bgSetPriority(border,1);
 	setBackdropColor(0);
-	dmaCopy(knuxfanPal, SPRITE_PALETTE, 512);
-	u8* gfx = (u8*)knuxfanTiles; 
-	knuxfanScreen[0] = oamAllocateGfx(&oamMain, SpriteSize_64x64, SpriteColorFormat_256Color);
-	dmaCopy(gfx, knuxfanScreen[0], 64*64);
-	gfx+=64*64;
-	knuxfanScreen[1] = oamAllocateGfx(&oamMain, SpriteSize_64x64, SpriteColorFormat_256Color);
-	dmaCopy(gfx, knuxfanScreen[1], 64*64);
-	
-	dmaCopy(presentsPal, SPRITE_PALETTE+512, 512);
-	
-	gfx = (u8*)presentsTiles; 
-	presents[0] = oamAllocateGfx(&oamMain, SpriteSize_64x64, SpriteColorFormat_256Color);
-	dmaCopy(gfx, presents[0], 64*64);
-	gfx+=64*64;
-	presents[1] = oamAllocateGfx(&oamMain, SpriteSize_64x64, SpriteColorFormat_256Color);
-	dmaCopy(gfx, presents[1], 64*64);
 
 
 
@@ -116,37 +69,7 @@ int ChrisScreen::logic() {
             active = false;
 			godown = true;
         }
-        if(lifetime > 200 && !explode) {
-            explode = true;
-			yVel=-2;
-        }
         //std::cout << lifetime << "\n";
-        if(!explode) {
-            knCoord[1] = lerp(knCoord[1],80,0.05);
-			knCoord[3] = lerp(knCoord[3],80,0.05);
-            presCoord[1] = lerp(presCoord[1],80,0.05);
-			presCoord[3] = lerp(presCoord[3],80,0.05);
-        }
-        else if(active) {
-            knRot++;
-			
-            knCoord[2] --;
-			knCoord[0] -=2;
-
-            presCoord[2]++;
-			presCoord[0]+=2;
-            
-			knCoord[2] --;
-			knCoord[0] -=2;
-
-            knCoord[1] += yVel;
-			knCoord[3] += yVel;
-
-            presCoord[1] += yVel;
-			presCoord[3] += yVel;
-
-            yVel += 0.25;
-        }
 
 
 
@@ -154,13 +77,13 @@ int ChrisScreen::logic() {
 
 
 	//BEGIN RENDERING!!!
-    oamRotateScale(&oamMain, 0, degreesToAngle(knRot), intToFixed(1, 8), intToFixed(1, 8));
+    // oamRotateScale(&oamMain, 0, degreesToAngle(knRot), intToFixed(1, 8), intToFixed(1, 8));
 	// bgSetScroll(bg[1], 0, 0);
 
-	bgSetScroll(bgS, angle, angle);
+	// bgSetScroll(bgS, angle, angle);
 
-	bgSetScroll(checkerboard,-angle,-angle);
-	bgSetScroll(bg3,-(4.0-4.0/scale),-(4-4.0/scale));
+	// bgSetScroll(checkerboard,-angle,-angle);
+	bgSetScroll(bg3,-(4.0-4.0/scale*4)-10,-(4-4.0/scale*4)+(float)lifetime/5.0);
 	
 	bgSetScale(bg3,((int)((scale)*(1<<8))),((int)((scale)*(1<<8))));
 	bgUpdate();
@@ -176,19 +99,6 @@ int ChrisScreen::logic() {
 	if(brightness <= 0 && !active) {
 		return 1;
 	}
-    oamSet(&oamMain, 0, knCoord[0], knCoord[1], 0, 0, SpriteSize_64x64, SpriteColorFormat_256Color, 
-    knuxfanScreen[0], 0, false, knCoord[1]>=193, false, false, false);
-    oamSet(&oamMain, 1, knCoord[2], knCoord[3], 0, 0, SpriteSize_64x64, SpriteColorFormat_256Color, 
-    knuxfanScreen[1], 0, false, knCoord[3]>=193, false, false, false);
-
-	//center of circle is 80+32+16+64 = 192
-	
-    oamSet(&oamMain, 2, presCoord[0], presCoord[1], 0, 0, SpriteSize_64x64, SpriteColorFormat_256Color, 
-    presents[0], 0, false, presCoord[1]>=193, false, false, false);
-    oamSet(&oamMain, 3, presCoord[2], presCoord[3], 0, 0, SpriteSize_64x64, SpriteColorFormat_256Color, 
-    presents[1], 0, false, presCoord[3]>=193, false, false, false);
-
-	oamUpdate(&oamMain);
 
 	setBrightness(3,-16+16*(brightness/100.0));
 	lifetime++;

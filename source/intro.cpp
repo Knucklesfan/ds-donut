@@ -35,8 +35,7 @@ float lerp(double a, double b, double t)    {
             return b-(b-a)*(1.0-t);
     }
 void Intro::clean() {
-	setBrightness(3,0);
-
+	
 }
 void Intro::load() {
 	

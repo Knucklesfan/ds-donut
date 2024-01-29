@@ -29,6 +29,7 @@
         {+100, +100, +100}};
      int Game::angle = 0;
      int Game::color = 0;
+	 int Game::brightness = 0;
      bool Game::cube = false;
      int Game::song = 0;
      sprite Game::spr;
@@ -46,8 +47,8 @@ void Game::load() {
 
 	oamInit(&oamMain, SpriteMapping_1D_128, false);
 	consoleInit(&bottomScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 0, false, true);
-	bg = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 0,0);
 
+	bg = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 0,0);
 	dmaCopy(dsconcertBitmap, bgGetGfxPtr(bg), 256*256);
 	dmaCopy(dsconcertPal, BG_PALETTE, 256*2);
 
@@ -55,7 +56,7 @@ void Game::load() {
     consoleSelect(&bottomScreen);
 	lcdMainOnBottom();
 	mmLoad(MOD_ADDICTI);
-
+	// dmaFillHalfWords(0x0FFF,(u16*)0x0500041E,0x2); //commenting this, but if you ever wanna set individual palette colors with DMA, this is how you do it. (u16*)0x0500041E magic number corresponds to the location of the graphics + 0x1E
 	mmStart(MOD_ADDICTI, MM_PLAY_LOOP);
 	spr = {128,96};
 	dmaCopy(marioheadbangPal, SPRITE_PALETTE, 512);
@@ -72,6 +73,10 @@ void Game::load() {
 
 }
 int Game::logic() {
+	if(brightness < 16) {
+		brightness+=4;
+		setBrightness(3,-16+brightness);
+	}
     scanKeys();
     u16 keys = keysDown();
     if (keys & KEY_L)

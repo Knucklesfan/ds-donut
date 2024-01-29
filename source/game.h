@@ -21,6 +21,8 @@ namespace Game {
     extern sprite spr;
     extern bool active;
     extern bool godown;
+    extern int brightness;
+
     extern PrintConsole bottomScreen;
      void load();
      void clean();
