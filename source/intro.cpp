@@ -1,6 +1,7 @@
 #include "intro.h"
-#include <nds.h>
 #include <stdio.h>
+#include <nds.h>
+
 #include "lakepng.h"
 #include "surprisingly.h"
 #include "border.h"
@@ -35,7 +36,7 @@ float lerp(double a, double b, double t)    {
             return b-(b-a)*(1.0-t);
     }
 void Intro::clean() {
-	
+
 }
 void Intro::load() {
 	

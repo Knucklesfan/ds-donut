@@ -1,7 +1,5 @@
 #pragma once
 
-#include <nds.h>
-#include <cmath>
 #include "utils.h"
 
 namespace Game {

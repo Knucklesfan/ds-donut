@@ -14,18 +14,13 @@ ITS DS DONUT BABY!!!!!
 By Knuxfan
 originally taken from donut.c by Andy Sloane (https://www.a1k0n.net/2021/01/13/optimizing-donut.html in particular!)
 ---------------------------------------------------------------------------------*/
+#include <stdio.h>
+
+#include <filesystem.h>
 #include <nds.h>
 #include <maxmod9.h>
 
-#include <cmath>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <filesystem.h>
 #include "soundbank.h"
-#include "soundbank_bin.h"
 #include "marioheadbang.h"
 #include "dsconcert.h"
 #include "game.h"
@@ -102,7 +97,7 @@ int main(void)
 
 	defaultExceptionHandler();
 
-	mmInitDefaultMem((mm_addr)soundbank_bin);
+    mmInitDefault("nitro:/soundbank.bin");
 	mmSetEventHandler(myEventHandler);
 	playWav();
 	//---------------------------------------------------------------------------------

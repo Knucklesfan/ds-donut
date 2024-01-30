@@ -1,6 +1,12 @@
 #include "game.h"
+
+#include <stdio.h>
+#include <filesystem.h>
+#include <nds.h>
+#include <maxmod9.h>
+#include <cmath>
+
 #include "soundbank.h"
-#include "soundbank_bin.h"
 #include "fortniteballs.h"
 #include "dsconcert.h"
 #include "FINALLY.h"
@@ -8,8 +14,6 @@
 #include "gangster.h"
 #include "DSDONUT.h"
 #include "marioheadbang.h"
-#include <maxmod9.h>
-#include <stdio.h>
     int Game::frame = 0;
 	int Game::bg = 0;
      int8_t Game::b[1760], Game::z[1760];
@@ -190,9 +194,9 @@ int Game::logic() {
     return 0;
 }
 void Game::drawCube() {
-			iprintf("\x1b[2J");
-			iprintf("\x1b[0m");
-			iprintf("L/R: COLOR SEL: SHAPE ST: MUSIC\n");
+			printf("\x1b[2J");
+			printf("\x1b[0m");
+			printf("L/R: COLOR SEL: SHAPE ST: MUSIC\n");
 
 			memset(cb, 32, 1760); // text buffer
 			memset(b, 32, 1760);  // text buffer

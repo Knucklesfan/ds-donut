@@ -5,7 +5,6 @@
 
 #include "chris.h"
 #include "soundbank.h"
-#include "soundbank_bin.h"
 
 PrintConsole ChrisScreen::bottomScreen;
 int ChrisScreen::angle = 0;

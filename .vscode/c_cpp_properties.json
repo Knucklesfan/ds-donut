@@ -6,7 +6,9 @@
                 "${workspaceFolder}/**",
                 "/opt/devkitpro/libnds/include/**",
                 "/opt/devkitpro/devkitARM/include/**",
-                "/opt/devkitpro/devkitARM/arm-none-eabi/include/**"
+                "/opt/devkitpro/devkitARM/arm-none-eabi/include/**",
+                "${workspaceFolder}/build/maxmod",
+                "${workspaceFolder}/build/data/gfx"
             ],
             "defines": [
                 "ARM9"

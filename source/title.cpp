@@ -1,11 +1,10 @@
 #include "title.h"
-#include <nds.h>
 #include <stdio.h>
+#include <nds.h>
 #include <maxmod9.h>
 #include "star.h"
 // #include "chris.h"
 #include "soundbank.h"
-#include "soundbank_bin.h"
 #define DISTANCE 300
 #define SPEED 6
 
