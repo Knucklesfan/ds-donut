@@ -3,7 +3,10 @@
 namespace Title {
     extern PrintConsole bottomScreen;
     extern bool active;
-    extern int bg[4];
+    extern float starX[128];
+    extern float starY[128];
+    extern float starZ[128];
+
     extern int lifetime;
     extern int bg3;
     extern u16* starValue;
