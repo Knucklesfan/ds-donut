@@ -23,6 +23,7 @@ originally taken from donut.c by Andy Sloane (https://www.a1k0n.net/2021/01/13/o
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <filesystem.h>
 #include "soundbank.h"
 #include "soundbank_bin.h"
 #include "marioheadbang.h"
@@ -32,6 +33,38 @@ originally taken from donut.c by Andy Sloane (https://www.a1k0n.net/2021/01/13/o
 #include "title.h"
 #include "chrisscreen.h"
 
+mm_word stream(mm_word length, mm_addr dest, mm_stream_formats format);
+FILE* file;
+
+void playWav() {
+	//load audio file
+	file = fopen("rap.wav", "rb");
+	//create a stream
+	//https://maxmod.devkitpro.org/ref/functions/mm_stream.html
+	mm_stream mystream;
+    mystream.sampling_rate = 44100;
+    mystream.buffer_length = 16000;
+    mystream.callback = stream;
+    mystream.format = MM_STREAM_16BIT_STEREO;
+    mystream.timer = MM_TIMER2;
+    mystream.manual = 1;
+    mmStreamOpen(&mystream);
+}
+//this fills mm_stream mystream buffer
+//https://maxmod.devkitpro.org/ref/functions/mm_stream_func.html
+mm_word stream(mm_word length, mm_addr dest, mm_stream_formats format) {
+	if (file) {
+		int res = fread(dest, 4, length, file);
+		if (res != length) {
+			mmStreamClose();
+			fclose(file);
+			length = res - (res % 4);
+		} else {
+			length = res;
+		}
+	}
+	return length;
+}
 volatile int frame = 0;
 volatile int scanline = 0;
 volatile int gamemode = 0;
@@ -66,6 +99,7 @@ mm_word myEventHandler(mm_word msg, mm_word param) {
 int main(void)
 {
 	defaultExceptionHandler();
+	nitroFSInit(NULL);
 
 	mmInitDefaultMem((mm_addr)soundbank_bin);
 	mmSetEventHandler(myEventHandler);
@@ -75,10 +109,11 @@ int main(void)
 	irqSet(IRQ_HBLANK, Hblank); //..and hblank for cool snes-like (HDMA ftw) hblank fun
 
 	irqEnable(IRQ_HBLANK|IRQ_VBLANK);   
-
+	
 	Title::load();
 	while (true)
 	{	
+		mmStreamUpdate();
 		switch(gamemode) {
 			case 0: {
 				int logic = Title::logic();
