@@ -98,12 +98,13 @@ mm_word myEventHandler(mm_word msg, mm_word param) {
 //---------------------------------------------------------------------------------
 int main(void)
 {
+	if(nitroFSInit(NULL)) {
+
 	defaultExceptionHandler();
-	nitroFSInit(NULL);
 
 	mmInitDefaultMem((mm_addr)soundbank_bin);
 	mmSetEventHandler(myEventHandler);
-
+	playWav();
 	//---------------------------------------------------------------------------------
 	irqSet(IRQ_VBLANK, Vblank); //Do some vblank, cuz we need to for hblank
 	irqSet(IRQ_HBLANK, Hblank); //..and hblank for cool snes-like (HDMA ftw) hblank fun
@@ -150,5 +151,7 @@ int main(void)
 		swiWaitForVBlank();
 
 	}
+	}
 	return 0;
+
 }
