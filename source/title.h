@@ -9,6 +9,8 @@ namespace Title {
 
     extern int lifetime;
     extern int bg3;
+    extern int firstTex;
+    extern int secondTex;
     extern u16* starValue;
     extern int brightness;
     extern int angle;

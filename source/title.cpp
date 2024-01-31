@@ -3,6 +3,9 @@
 #include <nds.h>
 #include <maxmod9.h>
 #include "star.h"
+#include "starcrawl.h"
+#include "finalcrawl.h"
+
 // #include "chris.h"
 #include "soundbank.h"
 #define DISTANCE 300
@@ -22,11 +25,46 @@ double Title::scale = 1.0;
 float Title::starX[128];
 float Title::starY[128];
 float Title::starZ[128];
+int Title::firstTex = 0;
+int Title::secondTex = 0;
+mm_word stream(mm_word length, mm_addr dest, mm_stream_formats format);
+FILE* file;
 
+void playWav() {
+	//load audio file
+	file = fopen("starwars.wav", "rb");
+	//create a stream
+	//https://maxmod.devkitpro.org/ref/functions/mm_stream.html
+	mm_stream mystream;
+    mystream.sampling_rate = 16000;
+    mystream.buffer_length = 16000;
+    mystream.callback = stream;
+    mystream.format = MM_STREAM_16BIT_STEREO;
+    mystream.timer = MM_TIMER2;
+    mystream.manual = 1;
+    mmStreamOpen(&mystream);
+}
+//this fills mm_stream mystream buffer
+//https://maxmod.devkitpro.org/ref/functions/mm_stream_func.html
+mm_word stream(mm_word length, mm_addr dest, mm_stream_formats format) {
+	if (file) {
+		int res = fread(dest, 4, length, file);
+		if (res != length) {
+			mmStreamClose();
+			fclose(file);
+			length = res - (res % 4);
+		} else {
+			length = res;
+		}
+	}
+	return length;
+}
 void Title::clean() {
-
+	mmStreamClose();
 }
 void Title::load() {
+	playWav();
+
     memset(starX, 0, sizeof(starX));
     memset(starY, 0, sizeof(starY)); //clear out the coordinates for the stars
     memset(starZ, 0, sizeof(starZ));
@@ -35,28 +73,64 @@ void Title::load() {
         starY[i] = (rand() % 192) - 96;
         starZ[i] = (rand() % 1700) - 100;
     }
-	videoSetMode(MODE_5_2D);
+    videoSetMode(MODE_0_3D);
 	videoSetModeSub(MODE_0_2D);
-    vramSetBankA(VRAM_A_MAIN_BG_0x06000000);
-	vramSetBankB(VRAM_B_MAIN_SPRITE);
+    vramSetBankA(VRAM_A_TEXTURE);
+	vramSetBankB(VRAM_B_TEXTURE);
 	vramSetBankC(VRAM_C_SUB_BG);
- 	oamInit(&oamMain, SpriteMapping_1D_128, false);
+	vramSetBankD(VRAM_D_SUB_SPRITE);
+ 	oamInit(&oamSub, SpriteMapping_1D_128, false);
 	
   	// bgExtPaletteEnable();
   	bgExtPaletteEnableSub();
 	//initialize the memory for our two backgrounds
 	bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 3,0);
 
-	consoleInit(&bottomScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 4, false, true);
+	consoleInit(&bottomScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 0, false, true);
 	consoleSelect(&bottomScreen);
-
+	printf("          PRESS START");
 	// dmaCopy(chrisBitmap, bgGetGfxPtr(bg3), 256*256);
 	// dmaCopy(chrisPal, BG_PALETTE, 256*2);
 
 	u8* gfx = (u8*)starTiles; 
-	starValue = oamAllocateGfx(&oamMain, SpriteSize_8x8, SpriteColorFormat_16Color);
+	starValue = oamAllocateGfx(&oamSub, SpriteSize_8x8, SpriteColorFormat_16Color);
 	dmaCopy(gfx, starValue, 8*8);
-	dmaCopy(starPal, SPRITE_PALETTE, 32);
+	dmaCopy(starPal, SPRITE_PALETTE_SUB, 32);
+    glInit();
+
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_ANTIALIAS);
+
+    // The background must be fully opaque and have a unique polygon ID
+    // (different from the polygons that are going to be drawn) so that
+    // antialias works.
+    glClearColor(0, 0, 0, 31);
+    glClearPolyID(63);
+
+    glClearDepth(0x7FFF);
+
+    glViewport(0, 0, 255, 191);
+
+    // Setup some VRAM as memory for textures
+
+    // Load texture
+    glGenTextures(1, &firstTex);
+	glGenTextures(1, &secondTex); //should just use an array, but this is enough
+
+    glBindTexture(0, firstTex);
+    glTexImage2D(0, 0, GL_RGB, TEXTURE_SIZE_256 , TEXTURE_SIZE_256, 0,
+                 TEXGEN_TEXCOORD, (u8*)starcrawlBitmap);
+    glBindTexture(0, secondTex);
+    glTexImage2D(0, 0, GL_RGB, TEXTURE_SIZE_256 , TEXTURE_SIZE_256, 0,
+                 TEXGEN_TEXCOORD, (u8*)finalcrawlBitmap);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(70, 256.0 / 192.0, 0.1, 40);
+
+    gluLookAt(0.0, 0.0, 2.0,  // Position
+              0.0, 0.0, 0.0,  // Look at
+              0.0, 1.0, 0.0); // Up
 
   	// consoleInit(&bottomScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 0, false, true);
 	
@@ -80,8 +154,11 @@ int Title::logic() {
 	//because im lazy
 
         //std::cout << lifetime << "\n";
-
-
+    scanKeys();
+    u16 keys = keysDown();
+    if (keys & KEY_START) {
+		return 1;
+	}
 
 
 
@@ -97,6 +174,7 @@ int Title::logic() {
 	
 	// bgSetScale(bg3,((int)((scale)*(1<<8))),((int)((scale)*(1<<8))));
 	// bgUpdate();
+	lifetime++;
 	if(!godown && active && brightness < 100) {
 		brightness++;
 	}
@@ -121,12 +199,67 @@ int Title::logic() {
         starZ[i] -= 600;
     }
     
-	oamSet(&oamMain, i, x, y, 0, 0, SpriteSize_8x8, SpriteColorFormat_16Color, 
+	oamSet(&oamSub, i, x, y, 0, 0, SpriteSize_8x8, SpriteColorFormat_16Color, 
     starValue, -1, false, false, false, false, false);
 	}
-	oamUpdate(&oamMain);
+	oamUpdate(&oamSub);
+	glPushMatrix();
+	glScalef(5,20,1);
+	glRotateZ(0);
+	glRotateX(-80);
+	glTranslatef32(0,-5015+lifetime,0);
 
+	glMatrixMode(GL_MODELVIEW);
+
+	glPolyFmt(POLY_ALPHA(31) | POLY_CULL_NONE);
+
+	glBindTexture(0, firstTex);
+
+	glColor3f(1, 1, 1);
+
+	glBegin(GL_QUADS);
+
+		GFX_TEX_COORD = (TEXTURE_PACK(0, inttot16(256)));
+		glVertex3v16(floattov16(-0.5), floattov16(0), 0);
+
+		GFX_TEX_COORD = (TEXTURE_PACK(inttot16(256),inttot16(256)));
+		glVertex3v16(floattov16(0.5), floattov16(0), 0);
+
+		GFX_TEX_COORD = (TEXTURE_PACK(inttot16(256), 0));
+		glVertex3v16(floattov16(0.5), floattov16(1), 0);
+
+		GFX_TEX_COORD = (TEXTURE_PACK(0,0));
+		glVertex3v16(floattov16(-0.5), floattov16(1), 0);
+
+	glEnd();
+	
+	glBindTexture(0, secondTex);
+
+	glColor3f(1, 1, 1);
+
+	glBegin(GL_QUADS);
+
+		GFX_TEX_COORD = (TEXTURE_PACK(0, inttot16(256)));
+		glVertex3v16(floattov16(-0.5), floattov16(-1), 0);
+
+		GFX_TEX_COORD = (TEXTURE_PACK(inttot16(256),inttot16(256)));
+		glVertex3v16(floattov16(0.5), floattov16(-1), 0);
+
+		GFX_TEX_COORD = (TEXTURE_PACK(inttot16(256), 0));
+		glVertex3v16(floattov16(0.5), floattov16(0), 0);
+
+		GFX_TEX_COORD = (TEXTURE_PACK(0,0));
+		glVertex3v16(floattov16(-0.5), floattov16(0), 0);
+
+	glEnd();
+
+
+	glPopMatrix(1);
+
+	glFlush(0);
 	setBrightness(3,-16+16*(brightness/100.0));
+	mmStreamUpdate();
+
 	lifetime++;
 	angle++;
 	return 0;

@@ -6,8 +6,11 @@ BLOCKSDS	?= /opt/blocksds/core
 
 # User config
 
-NAME		:= maxmod_nitrofs
-GAME_TITLE	:= Maxmod NitroFS example
+NAME		:= DSDonut
+GAME_ICON      :=      icon.bmp
+GAME_TITLE	:=	DSDonut
+GAME_SUBTITLE1	:=	Hold on to your donut...
+GAME_SUBTITLE2	:=	Wii Donut but on the DS
 
 # Source code paths
 
@@ -23,7 +26,7 @@ NITROFSDIR	:= nitrofiles
 
 # Libraries
 
-LIBS		:= -lm -lnds9 -lmm9
+LIBS		:= -lmm9 -lc -lnds9 -lm
 LIBDIRS		:= $(BLOCKSDS)/libs/maxmod
 
 include $(BLOCKSDS)/sys/default_makefiles/rom_arm9/Makefile

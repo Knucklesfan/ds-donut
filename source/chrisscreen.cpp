@@ -18,7 +18,7 @@ int ChrisScreen::bg3 = 0;
 double ChrisScreen::scale = 1.0;
 
 void ChrisScreen::clean() {
-
+	mmStop();
 }
 void ChrisScreen::load() {
 	mmLoad(MOD_WHISTLE);
