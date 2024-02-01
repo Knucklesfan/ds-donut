@@ -15,7 +15,7 @@ GAME_SUBTITLE2	:=	Wii Donut but on the DS
 # Source code paths
 
 SOURCEDIRS  := source
-INCLUDEDIRS := 
+INCLUDEDIRS := include
 GFXDIRS     := data/gfx
 AUDIODIRS   := data/music
 NITROFSDIR  := nitrofiles

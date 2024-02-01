@@ -1,2 +1,4 @@
 # bitmap, 16 bit
--gb -gB16
+-gB16
+-gb
+-gT 0

@@ -2,10 +2,13 @@
 #include <stdio.h>
 #include <nds.h>
 #include <maxmod9.h>
+#include <math.h>
 #include "star.h"
 #include "starcrawl.h"
 #include "finalcrawl.h"
-
+#include "donut.h"
+#include "starbgmain.h"
+#include "pressstart.h"
 // #include "chris.h"
 #include "soundbank.h"
 #define DISTANCE 300
@@ -19,17 +22,33 @@ bool Title::explode = false;
 bool Title::godown = false;
 bool Title::goup = true;
 int Title::lifetime = 0;
+int scrollY = 0;
 int Title::bg3 = 0;
 u16* Title::starValue = 0;
+u16* pressValue = 0;
 double Title::scale = 1.0;
-float Title::starX[128];
-float Title::starY[128];
-float Title::starZ[128];
+float starX[127];
+float starY[127];
+float starZ[127];
 int Title::firstTex = 0;
 int Title::secondTex = 0;
+bool donut = false;
 mm_word stream(mm_word length, mm_addr dest, mm_stream_formats format);
 FILE* file;
 
+void drawTri(int poly) {	
+	u32 f1 = donut_faces[poly * 3] ;
+	u32 f2 = donut_faces[poly * 3 + 1] ;
+	u32 f3 = donut_faces[poly * 3 + 2] ;
+	
+	glColor3b(255,0,0);
+	glVertex3v16(donut_vert[f1*3], donut_vert[f1*3 + 1], donut_vert[f1*3 +  2] );
+	glColor3b(0,255,0);
+	glVertex3v16(donut_vert[f2*3], donut_vert[f2*3 + 1], donut_vert[f2*3 + 2] );
+	glColor3b(0,0,255);
+	glVertex3v16(donut_vert[f3*3], donut_vert[f3*3 + 1], donut_vert[f3*3 + 2] );
+
+}
 void playWav() {
 	//load audio file
 	file = fopen("starwars.wav", "rb");
@@ -68,23 +87,26 @@ void Title::load() {
     memset(starX, 0, sizeof(starX));
     memset(starY, 0, sizeof(starY)); //clear out the coordinates for the stars
     memset(starZ, 0, sizeof(starZ));
-    for(int i = 0; i < 128; i++) {
-        starX[i] = (rand() % 256) - 128;
+    for(int i = 0; i < 127; i++) {
+        starX[i] = (rand() % 256) - 127;
         starY[i] = (rand() % 192) - 96;
         starZ[i] = (rand() % 1700) - 100;
     }
     videoSetMode(MODE_0_3D);
 	videoSetModeSub(MODE_0_2D);
+
     vramSetBankA(VRAM_A_TEXTURE);
 	vramSetBankB(VRAM_B_TEXTURE);
-	vramSetBankC(VRAM_C_SUB_BG);
+	vramSetBankC(VRAM_C_MAIN_BG_0x06000000);
 	vramSetBankD(VRAM_D_SUB_SPRITE);
  	oamInit(&oamSub, SpriteMapping_1D_128, false);
 	
   	// bgExtPaletteEnable();
-  	bgExtPaletteEnableSub();
 	//initialize the memory for our two backgrounds
-	bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 3,0);
+	bg3 = bgInit(1, BgType_Text4bpp, BgSize_T_256x256, 16, 0);
+	dmaCopy(starbgmainTiles,  bgGetGfxPtr(bg3), starbgmainTilesLen);
+	dmaCopy(starbgmainMap, bgGetMapPtr(bg3), starbgmainMapLen);
+	dmaCopy(starbgmainPal, BG_PALETTE, 256);
 
 	consoleInit(&bottomScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 0, false, true);
 	consoleSelect(&bottomScreen);
@@ -96,16 +118,19 @@ void Title::load() {
 	starValue = oamAllocateGfx(&oamSub, SpriteSize_8x8, SpriteColorFormat_16Color);
 	dmaCopy(gfx, starValue, 8*8);
 	dmaCopy(starPal, SPRITE_PALETTE_SUB, 32);
+	gfx = (u8*)pressstartTiles; 
+	pressValue = oamAllocateGfx(&oamSub, SpriteSize_64x32, SpriteColorFormat_16Color);
+	dmaCopy(gfx, pressValue, 64*32);
+	dmaCopy(pressstartPal, SPRITE_PALETTE_SUB+32, 32);
+
     glInit();
 
     glEnable(GL_TEXTURE_2D);
-    glEnable(GL_ANTIALIAS);
 
     // The background must be fully opaque and have a unique polygon ID
     // (different from the polygons that are going to be drawn) so that
     // antialias works.
-    glClearColor(0, 0, 0, 31);
-    glClearPolyID(63);
+    glClearColor(0, 0, 0, 0);
 
     glClearDepth(0x7FFF);
 
@@ -118,20 +143,24 @@ void Title::load() {
 	glGenTextures(1, &secondTex); //should just use an array, but this is enough
 
     glBindTexture(0, firstTex);
-    glTexImage2D(0, 0, GL_RGB, TEXTURE_SIZE_256 , TEXTURE_SIZE_256, 0,
+    glTexImage2D(0, 0, GL_RGBA, TEXTURE_SIZE_256 , TEXTURE_SIZE_256, 0,
                  TEXGEN_TEXCOORD, (u8*)starcrawlBitmap);
     glBindTexture(0, secondTex);
-    glTexImage2D(0, 0, GL_RGB, TEXTURE_SIZE_256 , TEXTURE_SIZE_256, 0,
+    glTexImage2D(0, 0, GL_RGBA, TEXTURE_SIZE_256 , TEXTURE_SIZE_256, 0,
                  TEXGEN_TEXCOORD, (u8*)finalcrawlBitmap);
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(70, 256.0 / 192.0, 0.1, 40);
+    // gluPerspective(70, 256.0 / 192.0, 0.1, 40);
 
-    gluLookAt(0.0, 0.0, 2.0,  // Position
-              0.0, 0.0, 0.0,  // Look at
-              0.0, 1.0, 0.0); // Up
-
+    // gluLookAt(0.0, 0.0, 2.0,  // Position
+    //           0.0, 0.0, 0.0,  // Look at
+    //           0.0, 1.0, 0.0); // Up
+	gluPerspective(70, 256.0 / 192.0, 0.1, 40);
+	
+	gluLookAt(	0.0, 0.0, 2.0,		//camera possition 
+				0.0, 0.0, 0.0,		//look at
+				0.0, 1.0, 0.0);		//up
   	// consoleInit(&bottomScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 0, false, true);
 	
 	// consoleInit(&topScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 30, 31, true, true);
@@ -143,7 +172,6 @@ void Title::load() {
     // iprintf("DSDonut!");
 	// consoleSelect(&bottomScreen);
 	// iprintf("Press start...");
-	setBackdropColor(0);
 
 
 
@@ -157,7 +185,8 @@ int Title::logic() {
     scanKeys();
     u16 keys = keysDown();
     if (keys & KEY_START) {
-		return 1;
+		lifetime = 0;
+		explode = true;
 	}
 
 
@@ -189,7 +218,7 @@ int Title::logic() {
 	}
 
 	//implementation reference https://samme.github.io/phaser-examples-mirror/demoscene/starfield.html
-	for(int i = 0; i < 128; i++) {
+	for(int i = 0; i < 127; i++) {
     float perspective = 300.0 / (300.0 - starZ[i]);
     int x = 256/2 + starX[i] * perspective;
     int y = 192/2 + starY[i] * perspective;
@@ -199,64 +228,113 @@ int Title::logic() {
         starZ[i] -= 600;
     }
     
-	oamSet(&oamSub, i, x, y, 0, 0, SpriteSize_8x8, SpriteColorFormat_16Color, 
+	oamSet(&oamSub, i+1, x, y, 0, 0, SpriteSize_8x8, SpriteColorFormat_16Color, 
     starValue, -1, false, false, false, false, false);
 	}
+	oamSetPalette(&oamSub,0,1);
+	oamSet(&oamSub, 0, 96, 80, 0, 0, SpriteSize_64x32, SpriteColorFormat_16Color, 
+    pressValue, -1, false, false, false, false, false);
+
 	oamUpdate(&oamSub);
 	glPushMatrix();
-	glScalef(5,20,1);
-	glRotateZ(0);
-	glRotateX(-80);
-	glTranslatef32(0,-5015+lifetime,0);
+	if(!donut) {
+		
+		glPolyFmt(POLY_ALPHA(31) | POLY_CULL_NONE);
 
-	glMatrixMode(GL_MODELVIEW);
+		glScalef(5,20,1);
+		glRotateZ(0);
+		glRotateX(-85);
+		if(explode) {
+			glTranslatef32(0,scrollY,0-lifetime*6);
+			if(lifetime > 200) {
+				donut = true;
+				explode = false;
+				lifetime = 0;
+			}
+		}
+		else {
+			scrollY = -6015+lifetime;
+			glTranslatef32(0,scrollY,0);
+			if(scrollY == 0) {
+				lifetime = 0;
+				explode = true;
+			}
+		}
+		glPolyFmt(POLY_ALPHA(1) | POLY_CULL_NONE | POLY_ID(2));		glMatrixMode(GL_MODELVIEW);
 
-	glPolyFmt(POLY_ALPHA(31) | POLY_CULL_NONE);
+		glBindTexture(0, firstTex);
 
-	glBindTexture(0, firstTex);
+		glColor3f(1, 1, 1);
 
-	glColor3f(1, 1, 1);
+		glBegin(GL_QUADS);
 
-	glBegin(GL_QUADS);
+			GFX_TEX_COORD = (TEXTURE_PACK(0, inttot16(256)));
+			glVertex3v16(floattov16(-0.5), floattov16(0), 0);
 
-		GFX_TEX_COORD = (TEXTURE_PACK(0, inttot16(256)));
-		glVertex3v16(floattov16(-0.5), floattov16(0), 0);
+			GFX_TEX_COORD = (TEXTURE_PACK(inttot16(256),inttot16(256)));
+			glVertex3v16(floattov16(0.5), floattov16(0), 0);
 
-		GFX_TEX_COORD = (TEXTURE_PACK(inttot16(256),inttot16(256)));
-		glVertex3v16(floattov16(0.5), floattov16(0), 0);
+			GFX_TEX_COORD = (TEXTURE_PACK(inttot16(256), 0));
+			glVertex3v16(floattov16(0.5), floattov16(1), 0);
 
-		GFX_TEX_COORD = (TEXTURE_PACK(inttot16(256), 0));
-		glVertex3v16(floattov16(0.5), floattov16(1), 0);
+			GFX_TEX_COORD = (TEXTURE_PACK(0,0));
+			glVertex3v16(floattov16(-0.5), floattov16(1), 0);
 
-		GFX_TEX_COORD = (TEXTURE_PACK(0,0));
-		glVertex3v16(floattov16(-0.5), floattov16(1), 0);
+		glEnd();
+		
+		glBindTexture(0, secondTex);
 
-	glEnd();
+		glColor3f(1, 1, 1);
+
+		glBegin(GL_QUADS);
+
+			GFX_TEX_COORD = (TEXTURE_PACK(0, inttot16(256)));
+			glVertex3v16(floattov16(-0.5), floattov16(-1), 0);
+
+			GFX_TEX_COORD = (TEXTURE_PACK(inttot16(256),inttot16(256)));
+			glVertex3v16(floattov16(0.5), floattov16(-1), 0);
+
+			GFX_TEX_COORD = (TEXTURE_PACK(inttot16(256), 0));
+			glVertex3v16(floattov16(0.5), floattov16(0), 0);
+
+			GFX_TEX_COORD = (TEXTURE_PACK(0,0));
+			glVertex3v16(floattov16(-0.5), floattov16(0), 0);
+
+			glEnd();
+	}
+	else {
 	
-	glBindTexture(0, secondTex);
+		//move it away from the camera
+		// glTranslatef32(0, floattof32((float)lifetime/100), floattof32(-3));
+		if(5-lifetime/50 > 0) {
+			glTranslatef32(0,floattof32(5-(float)lifetime/50.0),floattof32(-3));
+		}
+		else {
+			glTranslatef32(0,0,floattof32(-3));
+		}
+		glRotateY(lifetime/2);
+		glRotateX(-lifetime/2);
 
-	glColor3f(1, 1, 1);
+		glBindTexture(0, -1);
 
-	glBegin(GL_QUADS);
+		glSetOutlineColor(3,0);
+		glPolyFmt(POLY_ALPHA(0) | POLY_CULL_NONE | POLY_ID(1));		glMatrixMode(GL_MODELVIEW);
 
-		GFX_TEX_COORD = (TEXTURE_PACK(0, inttot16(256)));
-		glVertex3v16(floattov16(-0.5), floattov16(-1), 0);
+		glBegin(GL_TRIANGLE);
 
-		GFX_TEX_COORD = (TEXTURE_PACK(inttot16(256),inttot16(256)));
-		glVertex3v16(floattov16(0.5), floattov16(-1), 0);
-
-		GFX_TEX_COORD = (TEXTURE_PACK(inttot16(256), 0));
-		glVertex3v16(floattov16(0.5), floattov16(0), 0);
-
-		GFX_TEX_COORD = (TEXTURE_PACK(0,0));
-		glVertex3v16(floattov16(-0.5), floattov16(0), 0);
-
-	glEnd();
-
-
+			for(int i = 0; i < 74; i++) {
+				drawTri(i);
+			}
+			
+		glEnd();
+	}
 	glPopMatrix(1);
-
+			
 	glFlush(0);
+
+
+	//not a real gl function and will likely change
+
 	setBrightness(3,-16+16*(brightness/100.0));
 	mmStreamUpdate();
 
