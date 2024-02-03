@@ -76,14 +76,14 @@ int main(void)
 
 	irqEnable(IRQ_HBLANK|IRQ_VBLANK);   
 	
-	Title::load();
+	Intro::load();
 	while (true)
 	{	
 		switch(gamemode) {
 			case 0: {
-				int logic = Title::logic();
+				int logic = Intro::logic();
 				if(logic == 1) {
-					Title::clean();
+					Intro::clean();
 					ChrisScreen::load();
 					gamemode = 1;
 				};

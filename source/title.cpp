@@ -129,10 +129,12 @@ void Title::load() {
 	u8* gfx = (u8*)starTiles; 
 	starValue = oamAllocateGfx(&oamSub, SpriteSize_8x8, SpriteColorFormat_16Color);
 	dmaCopy(gfx, starValue, 8*8);
+	dmaCopy(starPal, SPRITE_PALETTE_SUB+32, 16*2);
+
 	gfx = (u8*)pressstartTiles; 
 	pressValue = oamAllocateGfx(&oamSub, SpriteSize_64x32, SpriteColorFormat_16Color);
 	dmaCopy(gfx, pressValue, 64*32);
-	dmaCopy(pressstartPal, SPRITE_PALETTE_SUB, 32);
+	dmaCopy(pressstartPal, SPRITE_PALETTE_SUB, 16*2);
 
     glInit();
 
