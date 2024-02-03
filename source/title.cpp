@@ -9,8 +9,11 @@
 #include "donut.h"
 #include "starbgmain.h"
 #include "pressstart.h"
+#include "logletters.h"
 // #include "chris.h"
 #include "soundbank.h"
+#include "utils.h"
+
 #define DISTANCE 300
 #define SPEED 6
 
@@ -22,19 +25,28 @@ bool Title::explode = false;
 bool Title::godown = false;
 bool Title::goup = true;
 int Title::lifetime = 0;
+int dsSymbolY = 0;
 int scrollY = 0;
+float fullLogoY = 0;
 int Title::bg3 = 0;
 u16* Title::starValue = 0;
 u16* pressValue = 0;
+u16* topPress = 0;
+int logoTimer = 0;
+int pressstartLower = 0;
 double Title::scale = 1.0;
 float starX[127];
 float starY[127];
 float starZ[127];
+sprite dsLogo;
+
 int Title::firstTex = 0;
 int Title::secondTex = 0;
 bool donut = false;
+bool showTitle = false;
 mm_word stream(mm_word length, mm_addr dest, mm_stream_formats format);
 FILE* file;
+float lerp(double a, double b, double t);
 
 void drawTri(int poly) {	
 	u32 f1 = donut_faces[poly * 3] ;
@@ -82,6 +94,9 @@ void Title::clean() {
 	mmStreamClose();
 }
 void Title::load() {
+	mmLoadEffect( SFX_DONUTDESCEND );
+	mmLoadEffect(SFX_RECORDSCRATCH);
+	mmLoadEffect(SFX_THUD);
 	playWav();
 
     memset(starX, 0, sizeof(starX));
@@ -108,20 +123,16 @@ void Title::load() {
 	dmaCopy(starbgmainMap, bgGetMapPtr(bg3), starbgmainMapLen);
 	dmaCopy(starbgmainPal, BG_PALETTE, 256);
 
-	consoleInit(&bottomScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 0, false, true);
-	consoleSelect(&bottomScreen);
-	printf("          PRESS START");
 	// dmaCopy(chrisBitmap, bgGetGfxPtr(bg3), 256*256);
 	// dmaCopy(chrisPal, BG_PALETTE, 256*2);
 
 	u8* gfx = (u8*)starTiles; 
 	starValue = oamAllocateGfx(&oamSub, SpriteSize_8x8, SpriteColorFormat_16Color);
 	dmaCopy(gfx, starValue, 8*8);
-	dmaCopy(starPal, SPRITE_PALETTE_SUB, 32);
 	gfx = (u8*)pressstartTiles; 
 	pressValue = oamAllocateGfx(&oamSub, SpriteSize_64x32, SpriteColorFormat_16Color);
 	dmaCopy(gfx, pressValue, 64*32);
-	dmaCopy(pressstartPal, SPRITE_PALETTE_SUB+32, 32);
+	dmaCopy(pressstartPal, SPRITE_PALETTE_SUB, 32);
 
     glInit();
 
@@ -185,8 +196,17 @@ int Title::logic() {
     scanKeys();
     u16 keys = keysDown();
     if (keys & KEY_START) {
-		lifetime = 0;
-		explode = true;
+		if(!explode && !donut) {
+			lifetime = 0;
+			explode = true;
+			mmStreamClose();
+			mmEffect(SFX_RECORDSCRATCH);
+		}
+		else if(donut && !showTitle) {
+			mmLoad(MOD_IMAGINARY);
+			mmStart(MOD_IMAGINARY, MM_PLAY_LOOP);
+			showTitle = true;
+		}
 	}
 
 
@@ -231,11 +251,11 @@ int Title::logic() {
 	oamSet(&oamSub, i+1, x, y, 0, 0, SpriteSize_8x8, SpriteColorFormat_16Color, 
     starValue, -1, false, false, false, false, false);
 	}
-	oamSetPalette(&oamSub,0,1);
-	oamSet(&oamSub, 0, 96, 80, 0, 0, SpriteSize_64x32, SpriteColorFormat_16Color, 
-    pressValue, -1, false, false, false, false, false);
-
+	oamSet(&oamSub, 0, 96+pressstartLower, 80, 0, 0, SpriteSize_64x32, SpriteColorFormat_16Color, 
+    pressValue, -1, false, 96+pressstartLower>256, false, false, false);
+	
 	oamUpdate(&oamSub);
+
 	glPushMatrix();
 	if(!donut) {
 		
@@ -246,10 +266,23 @@ int Title::logic() {
 		glRotateX(-85);
 		if(explode) {
 			glTranslatef32(0,scrollY,0-lifetime*6);
+			pressstartLower=lerp(pressstartLower,192,0.05);
 			if(lifetime > 200) {
+				vramSetBankB(VRAM_B_MAIN_SPRITE_0x06400000);	// 128kB
+				oamInit(&oamMain, SpriteMapping_Bmp_1D_128, false);
+				u8* gfx = (u8*)loglettersTiles; 
+				for(int i = 0; i < 10; i++) {
+					dsLogo.sprite_gfx_mem[i] = oamAllocateGfx(&oamMain, SpriteSize_32x32, SpriteColorFormat_256Color);
+					dmaCopy(gfx, dsLogo.sprite_gfx_mem[i], 32*32);
+					gfx+=32*32;
+
+				}
+				dmaCopy(loglettersPal, SPRITE_PALETTE, loglettersPalLen);
+
 				donut = true;
 				explode = false;
 				lifetime = 0;
+				mmEffect(SFX_DONUTDESCEND);
 			}
 		}
 		else {
@@ -258,6 +291,8 @@ int Title::logic() {
 			if(scrollY == 0) {
 				lifetime = 0;
 				explode = true;
+				mmStreamClose();
+				mmEffect(SFX_RECORDSCRATCH);
 			}
 		}
 		glPolyFmt(POLY_ALPHA(1) | POLY_CULL_NONE | POLY_ID(2));		glMatrixMode(GL_MODELVIEW);
@@ -301,16 +336,81 @@ int Title::logic() {
 			glVertex3v16(floattov16(-0.5), floattov16(0), 0);
 
 			glEnd();
+		mmStreamUpdate();
 	}
 	else {
-	
+		oamSet(&oamMain, 0, 78, 80-200+dsSymbolY-fullLogoY, 0, 0, SpriteSize_32x32, SpriteColorFormat_256Color, 
+		dsLogo.sprite_gfx_mem[0], -1, false, 80-200+dsSymbolY<0, false, false, false);
+		oamSet(&oamMain, 1, 78, 95+200-dsSymbolY-fullLogoY, 0, 0, SpriteSize_32x32, SpriteColorFormat_256Color, 
+		dsLogo.sprite_gfx_mem[1], -1, false, 95+200-dsSymbolY>192, false, false, false);
+
+		oamSet(&oamMain, 2, 98, 80-fullLogoY, 0, 0, SpriteSize_32x32, SpriteColorFormat_256Color, 
+		dsLogo.sprite_gfx_mem[2], -1, false, 200-dsSymbolY, false, false, false);
+		oamSet(&oamMain, 3, 98+32, 80-fullLogoY, 0, 0, SpriteSize_32x32, SpriteColorFormat_256Color, 
+		dsLogo.sprite_gfx_mem[3], -1, false, 200-dsSymbolY, false, false, false);
+		oamSet(&oamMain, 4, 98+64, 80-fullLogoY, 0, 0, SpriteSize_32x32, SpriteColorFormat_256Color, 
+		dsLogo.sprite_gfx_mem[4], -1, false, 200-dsSymbolY, false, false, false);
+
+		if(showTitle) {
+			oamSet(&oamMain, 5, 48, 80+sin(lifetime/16.0)*8, 0, 0, SpriteSize_32x32, SpriteColorFormat_256Color, 
+			dsLogo.sprite_gfx_mem[5], -1, false, false, false, false, false);
+			oamSet(&oamMain, 6, 48+32, 80+sin((lifetime+16)/16.0)*8, 0, 0, SpriteSize_32x32, SpriteColorFormat_256Color, 
+			dsLogo.sprite_gfx_mem[6], -1, false, false, false, false, false);
+			oamSet(&oamMain, 7, 48+64, 80+sin((lifetime+32)/16.0)*8, 0, 0, SpriteSize_32x32, SpriteColorFormat_256Color, 
+			dsLogo.sprite_gfx_mem[7], -1, false, false, false, false, false);
+			oamSet(&oamMain, 8, 48+96, 80+sin((lifetime+64)/16.0)*8, 0, 0, SpriteSize_32x32, SpriteColorFormat_256Color, 
+			dsLogo.sprite_gfx_mem[8], -1, false, false, false, false, false);
+			oamSet(&oamMain, 9, 48+128, 80+sin((lifetime+96)/16.0)*8, 0, 0, SpriteSize_32x32, SpriteColorFormat_256Color, 
+			dsLogo.sprite_gfx_mem[9], -1, false, false, false, false, false);
+		}
+		else {
+			oamSet(&oamMain, 5, 48, 80, 0, 0, SpriteSize_32x32, SpriteColorFormat_256Color, 
+			dsLogo.sprite_gfx_mem[5], -1, false, logoTimer<100, false, false, false);
+			oamSet(&oamMain, 6, 48+32, 80, 0, 0, SpriteSize_32x32, SpriteColorFormat_256Color, 
+			dsLogo.sprite_gfx_mem[6], -1, false, logoTimer<200, false, false, false);
+			oamSet(&oamMain, 7, 48+64, 80, 0, 0, SpriteSize_32x32, SpriteColorFormat_256Color, 
+			dsLogo.sprite_gfx_mem[7], -1, false, logoTimer<300, false, false, false);
+			oamSet(&oamMain, 8, 48+96, 80, 0, 0, SpriteSize_32x32, SpriteColorFormat_256Color, 
+			dsLogo.sprite_gfx_mem[8], -1, false, logoTimer<400, false, false, false);
+			oamSet(&oamMain, 9, 48+128, 80, 0, 0, SpriteSize_32x32, SpriteColorFormat_256Color, 
+			dsLogo.sprite_gfx_mem[9], -1, false, logoTimer<500, false, false, false);
+
+		}
+
+		oamUpdate(&oamMain);
+
 		//move it away from the camera
 		// glTranslatef32(0, floattof32((float)lifetime/100), floattof32(-3));
-		if(5-lifetime/50 > 0) {
+		if(5-lifetime/50 > 0 && !showTitle) {
 			glTranslatef32(0,floattof32(5-(float)lifetime/50.0),floattof32(-3));
 		}
 		else {
 			glTranslatef32(0,0,floattof32(-3));
+			if(dsSymbolY < 200) {
+				dsSymbolY+=4;
+				
+			}
+			else {
+				fullLogoY = lerp(fullLogoY,48,0.05);
+				logoTimer++;
+				if(logoTimer%100==0 && logoTimer <= 500 && !showTitle) {
+					mmEffect(SFX_THUD);
+				}
+				if(logoTimer > 600) {
+					if(!showTitle) {
+						mmLoad(MOD_IMAGINARY);
+                		mmStart(MOD_IMAGINARY, MM_PLAY_LOOP);
+						showTitle = true;
+					}
+				}
+			}
+			if(dsSymbolY > 180 && dsSymbolY < 200) {
+				setBackdropColor(0x7800);
+			}
+			else {
+				setBackdropColor(0);
+			}
+
 		}
 		glRotateY(lifetime/2);
 		glRotateX(-lifetime/2);
@@ -319,7 +419,7 @@ int Title::logic() {
 
 		glSetOutlineColor(3,0);
 		glPolyFmt(POLY_ALPHA(0) | POLY_CULL_NONE | POLY_ID(1));		glMatrixMode(GL_MODELVIEW);
-
+		
 		glBegin(GL_TRIANGLE);
 
 			for(int i = 0; i < 74; i++) {
@@ -332,11 +432,10 @@ int Title::logic() {
 			
 	glFlush(0);
 
-
+	
 	//not a real gl function and will likely change
 
 	setBrightness(3,-16+16*(brightness/100.0));
-	mmStreamUpdate();
 
 	lifetime++;
 	angle++;

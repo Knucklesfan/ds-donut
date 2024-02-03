@@ -27,7 +27,7 @@ typedef struct
 	int x;
 	int y;
 
-	u16* sprite_gfx_mem[5];
+	u16* sprite_gfx_mem[32];
 	int gfx_frame;
 
 
