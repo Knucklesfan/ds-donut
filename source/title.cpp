@@ -10,6 +10,7 @@
 #include "starbgmain.h"
 #include "pressstart.h"
 #include "logletters.h"
+#include "menufont.h"
 // #include "chris.h"
 #include "soundbank.h"
 #include "utils.h"
