@@ -36,6 +36,12 @@ float lerp(double a, double b, double t)    {
             return b-(b-a)*(1.0-t);
     }
 void Intro::clean() {
+	oamClear(&oamMain,0,0);
+	oamFreeGfx(&oamMain, knuxfanScreen[0]);
+	oamFreeGfx(&oamMain, knuxfanScreen[1]);
+	oamFreeGfx(&oamMain, presents[0]);
+	oamFreeGfx(&oamMain, presents[1]);
+	
 
 }
 void Intro::load() {
