@@ -71,6 +71,11 @@ int ChrisScreen::logic() {
         //std::cout << lifetime << "\n";
 
 
+    scanKeys();
+    u16 keys = keysDown();
+    if (keys & KEY_START) {
+		return 1;
+	}
 
 
 

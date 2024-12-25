@@ -136,14 +136,14 @@ int Game::logic() {
 				dmaCopy(DSDONUTPal, BG_PALETTE, 256*2);
 
                 mmUnload(MOD_2ND_PM);
-                mmLoad(MOD_VRC6N001);
-                mmStart(MOD_VRC6N001, MM_PLAY_LOOP);
+                mmLoad(MOD_RADIX);
+                mmStart(MOD_RADIX, MM_PLAY_LOOP);
                 break;
             }
             case 3: {
 				dmaCopy(fortniteballsBitmap, bgGetGfxPtr(bg), 256*256);
 				dmaCopy(fortniteballsPal, BG_PALETTE, 256*2);
-                mmUnload(MOD_VRC6N001);
+                mmUnload(MOD_RADIX);
                 mmLoad(MOD_CANT_STOP_COMING);
                 mmStart(MOD_CANT_STOP_COMING, MM_PLAY_LOOP);
                 break;
@@ -468,7 +468,7 @@ void Game::clean() {
 
             }
             case 2: {
-                mmUnload(MOD_VRC6N001);
+                mmUnload(MOD_RADIX);
                 break;
             }
             case 3: {

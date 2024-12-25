@@ -44,48 +44,50 @@ u16* letterGFX[48];
 int selection = 0;
 double selectionX = 0;
 double otherSelectX = 0;
-const unsigned short menufontPal[256] = {
+const unsigned short menufontPalette[256] = {
 	0x0000,0x4C11,0x6C1A,0x6016,0x7C1C,0x5414,0x6C19,0x741B,
 	0x6418,0x5815,0x7C1D,0x5013,0x741A,0x6416,0x701A,0x5C15,
 	0x0000,0x4C11,0x6C1A,0x6016,0x7C1C,0x5414,0x6C19,0x741B,
 	0x6418,0x5815,0x7C1D,0x5013,0x741A,0x6416,0x701A,0x5C15,
 
 
-}
-int menu[30] = { //THE TEXT FOR THE MENU ON THE BOTTOM SCREEN
+};
+const int menu[33] = { //THE TEXT FOR THE MENU ON THE BOTTOM SCREEN
+		15+10,//P
+		17+10,//R
+		4+10, //E
+		18+10,//S
+		18+10,//S
+		-1,
 		18+10,//S
 		19+10,//T
 		0+10, //A
 		17+10,//R
 		19+10,//T
+
+
 		-1,
-		6+10, //G
-		0+10, //A
-		12+10,//M
-		4+10, //E
-	
-	
-		14+10, //O
-		15+10, //P
-		19+10, //T
-		8+10,  //I
-		14+10, //O
+		-1,
+		10+10, //K
 		13+10, //N
-		18+10, //S
+		21+10, //U
+		23+10, //X
+		5+10, //F
+		0+10, //A
+		13+10, //N
 		-1,
 		-1,
+
 		-1,
-	
-		
-		2+10, //C
-		17+10,//R
-		4+10, //E
-		3+10, //D
-		8+10, //I
-		19+10,//T
-		18+10,//S
-		-1,
-		-1,
+		2, //2
+		0, //0
+		2, //2
+		4, //4
+		30+10, //-
+		2, //2
+		0, //0
+		2, //2
+		5, //5
 		-1,
 };
 int Title::firstTex = 0;
@@ -259,7 +261,11 @@ int Title::logic() {
 		else if(donut && !showTitle) {
 			mmLoad(MOD_IMAGINARY);
 			mmStart(MOD_IMAGINARY, MM_PLAY_LOOP);
+			pressstartLower = 0;
 			showTitle = true;
+		}
+		else if(showTitle) {
+			return 1;
 		}
 	}
 
@@ -305,7 +311,7 @@ int Title::logic() {
 	oamSet(&oamSub, i+1, x, y, 0, 0, SpriteSize_8x8, SpriteColorFormat_16Color, 
     starValue, -1, false, false, false, false, false);
 	}
-	oamSet(&oamSub, 0, 96+pressstartLower, 80, 0, 0, SpriteSize_64x32, SpriteColorFormat_16Color, 
+	oamSet(&oamSub, 0, 96+pressstartLower, 80, 0, 0, SpriteSize_64x32, SpriteColorFormat_16Color,
     pressValue, -1, false, 96+pressstartLower>256, false, false, false);
 	
 	oamUpdate(&oamSub);
@@ -426,25 +432,26 @@ int Title::logic() {
 			dsLogo.sprite_gfx_mem[8], -1, false, false, false, false, false);
 			oamSet(&oamMain, 9, 48+128, 80+sin((lifetime+96)/16.0)*8, 0, 0, SpriteSize_32x32, SpriteColorFormat_16Color, 
 			dsLogo.sprite_gfx_mem[9], -1, false, false, false, false, false);
-			for(int i = 0; i < 30; i++)	{
+			for(int i = 0; i < 33; i++)	{
 				if(menu[i] != -1) {
-					if(i >= 10 && i < 20) {
-						oamSet(&oamMain, 
+					if(i > 11 && i <= 22) {
+						oamSet(&oamMain,
 						10+i,
-						selectionX+((i%10)*8)+((i>=10)?12:0),
-						128+((i/10)*8),
+						(selectionX)+((i%11)*8)-1,
+						128+((i/11)*8),
 						0,1,SpriteSize_8x8, SpriteColorFormat_16Color, letterGFX[menu[i]],-1,false,false,false,false,false);
 					}
 					else {
 						oamSet(&oamMain,
 						10+i,
-						(256-otherSelectX)+((i%10)*8)-1+((i>=10)?12:0),
-						128+((i/10)*8),
+						(256-otherSelectX)+((i%11)*8)-1,
+						128+((i/11)*8),
 						0,1,SpriteSize_8x8, SpriteColorFormat_16Color, letterGFX[menu[i]],-1,false,false,false,false,false);
+
 					}
 				}
 			}
-
+			//MENU WILL COME EVENTUALLY... i hope...
 		}
 		else {
 			oamSet(&oamMain, 5, 48, 80, 0, 0, SpriteSize_32x32, SpriteColorFormat_16Color, 
@@ -465,18 +472,18 @@ int Title::logic() {
 		//move it away from the camera
 		// glTranslatef32(0, floattof32((float)lifetime/100), floattof32(-3));
 		if(showTitle) {
-			if(selectionX < 88) {
-				selectionX = lerp(selectionX, 88,0.1);
+			if(selectionX < 84) {
+				selectionX = lerp(selectionX, 84,0.1);
 			}
 			else {
-				selectionX = 88;
+				selectionX = 84;
 			}
 
-			if(otherSelectX < 168) {
-				otherSelectX = lerp(otherSelectX, 168,0.1);
+			if(otherSelectX < 172) {
+				otherSelectX = lerp(otherSelectX, 172,0.1);
 			}
 			else {
-				otherSelectX = 168;
+				otherSelectX = 172;
 			}
 
 		}
@@ -500,6 +507,7 @@ int Title::logic() {
 					if(!showTitle) {
 						mmLoad(MOD_IMAGINARY);
                 		mmStart(MOD_IMAGINARY, MM_PLAY_LOOP);
+
 						showTitle = true;
 					}
 				}

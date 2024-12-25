@@ -117,6 +117,11 @@ void Intro::load() {
 
 }
 int Intro::logic() {
+    scanKeys();
+    u16 keys = keysDown();
+    if (keys & KEY_START) {
+		return 1;
+	}
 
 	//ALL OF THIS LOGIC IS STOLEN FROM KNUXFANPONG/KNUXFANTETRIMINOS
 	//because im lazy
